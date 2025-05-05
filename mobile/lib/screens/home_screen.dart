@@ -834,7 +834,8 @@ class _HomeContent extends StatelessWidget {
                                 color: Colors.black,
                               ),
                               const SizedBox(height: 8),
-                              Text(
+                             Expanded(
+                              child:  Text(
                                 category.name,
                                 style: const TextStyle(
                                   color: Colors.black,
@@ -845,6 +846,7 @@ class _HomeContent extends StatelessWidget {
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
+                             )
                             ],
                           ),
                         ),

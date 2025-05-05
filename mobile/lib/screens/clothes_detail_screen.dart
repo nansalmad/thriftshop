@@ -233,54 +233,76 @@ class ClothesDetailScreen extends StatelessWidget {
   }
 
   Widget _buildAddToCartButton(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 16),
-      child: SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: () {
-            Provider.of<CartProvider>(context, listen: false)
-                .addToCart(context, clothes['id']);
-            
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('${clothes['title']} added to cart'),
-                duration: const Duration(seconds: 1),
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            );
+  return Consumer<CartProvider>(
+    builder: (context, cartProvider, child) {
+      final bool isInCart = cartProvider.isInCart(clothes['id']);
+      
+      return Padding(
+        padding: const EdgeInsets.only(top: 16),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          transitionBuilder: (child, animation) {
+            return ScaleTransition(scale: animation, child: child);
           },
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 18),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            foregroundColor: Theme.of(context).colorScheme.onPrimary,
-            elevation: 2,
-            shadowColor: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-          ),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.shopping_bag_outlined),
-              SizedBox(width: 10),
-              Text(
-                'Add to Cart',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+          child: SizedBox(
+            key: ValueKey(isInCart),
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: isInCart
+                  ? null
+                  : () {
+                      cartProvider.addToCart(context, clothes['id']);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('${clothes['title']} added to cart'),
+                          duration: const Duration(seconds: 1),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      );
+                    },
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
+                backgroundColor: isInCart
+                    ? Colors.grey[400]
+                    : Theme.of(context).colorScheme.primary,
+                foregroundColor: isInCart
+                    ? Colors.white
+                    : Theme.of(context).colorScheme.onPrimary,
+                elevation: 2,
+                shadowColor: Theme.of(context)
+                    .colorScheme
+                    .primary
+                    .withOpacity(0.3),
               ),
-            ],
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    isInCart ? Icons.check_circle : Icons.shopping_bag_outlined,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    isInCart ? 'Added to Cart' : 'Add to Cart',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
-      ),
-    );
-  }
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
