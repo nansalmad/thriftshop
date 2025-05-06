@@ -24,15 +24,15 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      print('Loading cart...'); // Debug print
+      // print('Loading cart...'); // Debug print
       final response = await _apiService.getCart();
-      print('Cart loaded from API: $response'); // Debug print
+      // print('Cart loaded from API: $response'); // Debug print
       
       if (response.isEmpty) {
-        print('Cart is empty'); // Debug print
+        // print('Cart is empty'); // Debug print
         _cartItems = [];
       } else {
-        print('Setting cart items: $response'); // Debug print
+        // print('Setting cart items: $response'); // Debug print
         _cartItems = response;
       }
       

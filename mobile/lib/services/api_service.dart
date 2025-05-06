@@ -23,7 +23,7 @@ class ApiService {
     );
 
     if (response.statusCode == 200) {
-      return json.decode(response.body);
+      return json.decode(utf8.decode(response.bodyBytes));
     } else {
       throw Exception('Failed to login');
     }
@@ -51,7 +51,7 @@ class ApiService {
     );
 
     if (response.statusCode == 201) {
-      return json.decode(response.body);
+      return json.decode(utf8.decode(response.bodyBytes));
     } else {
       throw Exception('Failed to register');
     }
@@ -112,7 +112,7 @@ class ApiService {
   Future<Map<String, dynamic>> getClothesById(int id) async {
     final response = await http.get(Uri.parse('$baseUrl/clothes/$id/'));
     if (response.statusCode == 200) {
-      return json.decode(response.body);
+      return json.decode(utf8.decode(response.bodyBytes));
     } else {
       throw Exception('Failed to load clothes details');
     }
@@ -150,7 +150,7 @@ class ApiService {
     );
 
     if (response.statusCode == 201) {
-      return json.decode(response.body);
+      return json.decode(utf8.decode(response.bodyBytes));
     } else {
       throw Exception('Failed to add clothes');
     }
@@ -171,7 +171,7 @@ class ApiService {
     );
 
     if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
+      final List<dynamic> data = json.decode(utf8.decode(response.bodyBytes));
       return List<Map<String, dynamic>>.from(data);
     } else if (response.statusCode == 401) {
       throw Exception('Authentication required');
@@ -195,7 +195,7 @@ class ApiService {
     );
 
     if (response.statusCode == 200) {
-      final data = json.decode(response.body);
+      final data = json.decode(utf8.decode(response.bodyBytes));
       
       final newSessionId = response.headers['x-session-id'];
       if (newSessionId != null) {
@@ -347,7 +347,7 @@ class ApiService {
     );
 
     if (response.statusCode == 200) {
-      return json.decode(response.body);
+      return json.decode(utf8.decode(response.bodyBytes));
     } else {
       throw Exception('Failed to load order details');
     }
