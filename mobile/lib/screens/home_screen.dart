@@ -448,7 +448,7 @@ class _HomeScreenState extends State<HomeScreen> {
               gap: 8,
               activeColor: Colors.white,
               iconSize: 24,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 12),
               duration: const Duration(milliseconds: 400),
               tabBackgroundColor: Colors.black,
               color: Colors.black,
@@ -461,10 +461,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: Icons.shopping_cart_rounded,
                   text: 'Cart',
                 ),
+                const GButton(
+                  icon: Icons.login,
+                  text: 'Login',
+                ),
                 if (authProvider.isAuthenticated)
                   const GButton(
                     icon: Icons.list_rounded,
                     text: 'My Listings',
+                  ),
+                if (authProvider.isAuthenticated)
+                  const GButton(
+                    icon: Icons.logout,
+                    text: 'Logout',
                   ),
               ],
               selectedIndex: _selectedIndex,
@@ -834,19 +843,19 @@ class _HomeContent extends StatelessWidget {
                                 color: Colors.black,
                               ),
                               const SizedBox(height: 8),
-                             Expanded(
-                              child:  Text(
-                                category.name,
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
+                              Expanded(
+                                child: Text(
+                                  category.name,
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                             )
+                              )
                             ],
                           ),
                         ),
