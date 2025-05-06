@@ -137,7 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Build the filter header
   Widget _buildFilterHeader() {
     return const Text(
-      'Filter Clothes',
+      'Шүүлт',
       style: TextStyle(
         fontSize: 20,
         fontWeight: FontWeight.bold,
@@ -151,7 +151,7 @@ class _HomeScreenState extends State<HomeScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Gender',
+          'Хүйс',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w500,
@@ -162,7 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
           spacing: 8,
           children: [
             FilterChip(
-              label: const Text('All'),
+              label: const Text('Бүгд'),
               selected: _selectedGender == null,
               onSelected: (selected) {
                 setModalState(() {
@@ -176,7 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             FilterChip(
-              label: const Text('Male'),
+              label: const Text('Эрэгтэй'),
               selected: _selectedGender == 'M',
               onSelected: (selected) {
                 setModalState(() {
@@ -190,7 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             FilterChip(
-              label: const Text('Female'),
+              label: const Text('Эмэгтэй'),
               selected: _selectedGender == 'F',
               onSelected: (selected) {
                 setModalState(() {
@@ -204,7 +204,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             FilterChip(
-              label: const Text('Unisex'),
+              label: const Text('Хоёр хүйст'),
               selected: _selectedGender == 'U',
               onSelected: (selected) {
                 setModalState(() {
@@ -229,7 +229,7 @@ class _HomeScreenState extends State<HomeScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Categories',
+          'Ангилал',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w500,
@@ -245,7 +245,7 @@ class _HomeScreenState extends State<HomeScreen> {
             }
 
             if (snapshot.hasError) {
-              return const Text('Error loading categories');
+              return const Text('Ангилал ачаалахад алдаа гарлаа');
             }
 
             final categories = snapshot.data ?? [];
@@ -253,7 +253,7 @@ class _HomeScreenState extends State<HomeScreen> {
               spacing: 8,
               children: [
                 FilterChip(
-                  label: const Text('All'),
+                  label: const Text('Бүгд'),
                   selected: _selectedCategoryId == null,
                   onSelected: (selected) {
                     setModalState(() {
@@ -285,7 +285,6 @@ class _HomeScreenState extends State<HomeScreen> {
       child: ElevatedButton(
         onPressed: () {
           setState(() {
-            // Update main state with filter values
             _selectedGender = _selectedGender;
             _selectedCategoryId = _selectedCategoryId;
           });
@@ -300,7 +299,7 @@ class _HomeScreenState extends State<HomeScreen> {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        child: const Text('Apply Filters'),
+        child: const Text('Шүүлт хэрэглэх'),
       ),
     );
   }
@@ -336,7 +335,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
-          'Thrift Store',
+          'Дэлгүүр',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 24,
@@ -350,21 +349,21 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: _showFilterBottomSheet,
-            tooltip: 'Filter',
+            tooltip: 'Шүүлт',
             color: Colors.black,
           ),
           if (authProvider.isAuthenticated)
             IconButton(
               icon: const Icon(Icons.logout),
               onPressed: _handleLogout,
-              tooltip: 'Logout',
+              tooltip: 'Гарах',
               color: Colors.black,
             )
           else
             IconButton(
               icon: const Icon(Icons.login),
               onPressed: _navigateToLogin,
-              tooltip: 'Login',
+              tooltip: 'Нэвтрэх',
               color: Colors.black,
             ),
         ],
@@ -385,7 +384,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search clothes...',
+                hintText: 'Хайх...',
                 hintStyle: TextStyle(color: Colors.grey[600]),
                 prefixIcon: const Icon(Icons.search, color: Colors.black),
                 suffixIcon: _searchQuery.isNotEmpty
@@ -448,32 +447,23 @@ class _HomeScreenState extends State<HomeScreen> {
               gap: 8,
               activeColor: Colors.white,
               iconSize: 24,
-              padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               duration: const Duration(milliseconds: 400),
               tabBackgroundColor: Colors.black,
               color: Colors.black,
               tabs: [
                 const GButton(
                   icon: Icons.home_rounded,
-                  text: 'Home',
+                  text: 'Нүүр',
                 ),
                 const GButton(
                   icon: Icons.shopping_cart_rounded,
-                  text: 'Cart',
-                ),
-                const GButton(
-                  icon: Icons.login,
-                  text: 'Login',
+                  text: 'Сагс',
                 ),
                 if (authProvider.isAuthenticated)
                   const GButton(
                     icon: Icons.list_rounded,
-                    text: 'My Listings',
-                  ),
-                if (authProvider.isAuthenticated)
-                  const GButton(
-                    icon: Icons.logout,
-                    text: 'Logout',
+                    text: 'Миний зар',
                   ),
               ],
               selectedIndex: _selectedIndex,
@@ -493,7 +483,7 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: _navigateToAddClothes,
               icon: const Icon(Icons.add, color: Colors.white),
               label: const Text(
-                'Add Item',
+                'Зар нэмэх',
                 style: TextStyle(color: Colors.white),
               ),
               backgroundColor: Colors.black,
@@ -534,7 +524,7 @@ class _HomeContent extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Featured Items',
+                'Онцлох бараанууд',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -544,7 +534,7 @@ class _HomeContent extends StatelessWidget {
                 onPressed: () {
                   // TODO: Navigate to featured items
                 },
-                child: const Text('See All'),
+                child: const Text('Бүгдийг харах'),
               ),
             ],
           ),
@@ -901,8 +891,8 @@ class _HomeContent extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               searchQuery.isEmpty
-                  ? 'No clothes available'
-                  : 'No results found for "$searchQuery"',
+                  ? 'Бараа байхгүй байна'
+                  : '"$searchQuery" гэсэн хайлтад олдсонгүй',
               style: TextStyle(
                 color: Colors.grey[800],
                 fontSize: 16,
@@ -998,7 +988,6 @@ class _HomeContent extends StatelessWidget {
             width: double.infinity,
             fit: BoxFit.cover,
             errorBuilder: (context, error, stackTrace) {
-              debugPrint('Error loading image: $error');
               return _buildErrorImage();
             },
           )
@@ -1051,7 +1040,7 @@ class _HomeContent extends StatelessWidget {
               color: isInCart ? Colors.white : Colors.black,
             ),
             label: Text(
-              isInCart ? 'Added' : 'Add to Cart',
+              isInCart ? 'Нэмсэн' : 'Сагсанд нэмэх',
               style: TextStyle(
                 color: isInCart ? Colors.white : Colors.black,
                 fontSize: 12,
