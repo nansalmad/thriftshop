@@ -63,7 +63,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final pickedFile = await picker.pickImage(
         source: ImageSource.gallery,
         maxWidth: 800,
-        maxHeight: 800,
+        maxHeight: 400,
         imageQuality: 90,
       );
 
@@ -195,7 +195,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildProfileHeader(AuthProvider authProvider) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.only(top: 50, bottom: 20),
+      padding: const EdgeInsets.only(top: 10, bottom: 10),
       decoration: BoxDecoration(
         color: Theme.of(context).primaryColor.withOpacity(0.1),
       ),

@@ -28,34 +28,34 @@ class ClothesDetailScreen extends StatelessWidget {
   }
 
   String _formatGender(String? gender) {
-    if (gender == null) return 'Not specified';
+    if (gender == null) return 'Тодорхойгүй';
     switch (gender) {
-      case 'M': return 'Male';
-      case 'F': return 'Female';
-      case 'U': return 'Unisex';
-      default: return 'Not specified';
+      case 'M': return 'Эрэгтэй';
+      case 'F': return 'Эмэгтэй';
+      case 'U': return 'Хоёр хүйст';
+      default: return 'Тодорхойгүй';
     }
   }
 
   String _formatCondition(String? condition) {
-    if (condition == null) return 'Not specified';
+    if (condition == null) return 'Тодорхойгүй';
     switch (condition) {
-      case 'new': return 'Brand New (with tags)';
-      case 'like_new': return 'Like New';
-      case 'good': return 'Good';
-      case 'fair': return 'Fair';
-      case 'poor': return 'Poor';
-      default: return 'Not specified';
+      case 'new': return 'Шинэ (шошготой)';
+      case 'like_new': return 'Шинэ шиг';
+      case 'good': return 'Сайн';
+      case 'fair': return 'Дунд';
+      case 'poor': return 'Муу';
+      default: return 'Тодорхойгүй';
     }
   }
 
   String _formatDate(String? dateStr) {
-    if (dateStr == null) return 'Not available';
+    if (dateStr == null) return 'Тодорхойгүй';
     try {
       final date = DateTime.parse(dateStr);
       return '${date.day}/${date.month}/${date.year}';
     } catch (e) {
-      return 'Not available';
+      return 'Тодорхойгүй';
     }
   }
 
@@ -117,7 +117,7 @@ class ClothesDetailScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Text(
-                        'SOLD',
+                        'ЗАРЛАГДСАН',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 24,
@@ -181,7 +181,7 @@ class ClothesDetailScreen extends StatelessWidget {
           Chip(
             backgroundColor: clothes['is_sold'] == true ? Colors.red[50] : Colors.green[50],
             label: Text(
-              clothes['is_sold'] == true ? 'Sold' : 'Available',
+              clothes['is_sold'] == true ? 'Зарлагдсан' : 'Боломжтой',
               style: TextStyle(
                 color: clothes['is_sold'] == true ? Colors.red[800] : Colors.green[800],
                 fontWeight: FontWeight.bold,
@@ -209,7 +209,7 @@ class ClothesDetailScreen extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              'Seller Information',
+              'Борлуулагчийн мэдээлэл',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -261,7 +261,7 @@ class ClothesDetailScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Member since ${_formatDate(clothes['owner']?['date_joined'])}',
+                      'Гишүүнчлэл: ${_formatDate(clothes['owner']?['date_joined'])}',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                           ),
@@ -289,7 +289,7 @@ class ClothesDetailScreen extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              'Description',
+              'Тайлбар',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -304,7 +304,7 @@ class ClothesDetailScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
-            clothes['description'] ?? 'No description available',
+            clothes['description'] ?? 'Тайлбар байхгүй',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   height: 1.6,
                 ),
@@ -327,7 +327,7 @@ class ClothesDetailScreen extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              'Item Details',
+              'Бүтээгдэхүүний дэлгэрэнгүй',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -343,16 +343,16 @@ class ClothesDetailScreen extends StatelessWidget {
           ),
           child: Column(
             children: [
-              _buildDetailRow(context, 'Condition', _formatCondition(clothes['condition'])),
-              _buildDetailRow(context, 'Size', clothes['size'] ?? 'Not specified'),
-              _buildDetailRow(context, 'Gender', _formatGender(clothes['gender'])),
-              _buildDetailRow(context, 'Brand', clothes['brand'] ?? 'Not specified'),
+              _buildDetailRow(context, 'Төлөв', _formatCondition(clothes['condition'])),
+              _buildDetailRow(context, 'Хэмжээ', clothes['size'] ?? 'Тодорхойгүй'),
+              _buildDetailRow(context, 'Хүйс', _formatGender(clothes['gender'])),
+              _buildDetailRow(context, 'Брэнд', clothes['brand'] ?? 'Тодорхойгүй'),
               if (clothes['original_price'] != null)
-                _buildDetailRow(context, 'Original Price', '\$${_formatPrice(clothes['original_price'])}'),
+                _buildDetailRow(context, 'Жинхэнэ үнэ', '\$${_formatPrice(clothes['original_price'])}'),
               if (clothes['reason_for_sale'] != null)
-                _buildDetailRow(context, 'Reason for Sale', clothes['reason_for_sale']),
-              _buildDetailRow(context, 'Listed On', _formatDate(clothes['created_at'])),
-              _buildDetailRow(context, 'Last Updated', _formatDate(clothes['updated_at'])),
+                _buildDetailRow(context, 'Зарах шалтгаан', clothes['reason_for_sale']),
+              _buildDetailRow(context, 'Зарсан огноо', _formatDate(clothes['created_at'])),
+              _buildDetailRow(context, 'Шинэчилсэн огноо', _formatDate(clothes['updated_at'])),
             ],
           ),
         ),
@@ -401,7 +401,7 @@ class ClothesDetailScreen extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              'Shipping & Pickup',
+              'Хүргэлт & Авах',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -419,13 +419,13 @@ class ClothesDetailScreen extends StatelessWidget {
             children: [
               _buildDetailRow(
                 context, 
-                'Pickup Available', 
-                clothes['available_for_pickup'] == true ? 'Yes' : 'No'
+                'Авах боломжтой', 
+                clothes['available_for_pickup'] == true ? 'Тийм' : 'Үгүй'
               ),
               if (clothes['available_for_pickup'] == true && clothes['pickup_location'] != null)
-                _buildDetailRow(context, 'Pickup Location', clothes['pickup_location']),
+                _buildDetailRow(context, 'Авах газар', clothes['pickup_location']),
               if (clothes['shipping_cost'] != null)
-                _buildDetailRow(context, 'Shipping Cost', '\$${_formatPrice(clothes['shipping_cost'])}'),
+                _buildDetailRow(context, 'Хүргэлтийн төлбөр', '\$${_formatPrice(clothes['shipping_cost'])}'),
             ],
           ),
         ),
@@ -446,7 +446,7 @@ class ClothesDetailScreen extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              'Contact Information',
+              'Холбоо барих',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -476,7 +476,7 @@ class ClothesDetailScreen extends StatelessWidget {
                   ),
                 ),
                 title: Text(
-                  'Phone',
+                  'Утас',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                       ),
@@ -519,7 +519,7 @@ class ClothesDetailScreen extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Item purchased successfully!'),
+            content: Text('Бүтээгдэхүүн амжилттай худалдан авлаа!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -531,7 +531,7 @@ class ClothesDetailScreen extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to purchase item: ${e.toString()}'),
+            content: Text('Бүтээгдэхүүн худалдан авахад амжилтгүй боллоо: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -545,7 +545,7 @@ class ClothesDetailScreen extends StatelessWidget {
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(
-          clothes['title'] ?? 'Product Details',
+          clothes['title'] ?? 'Гарчиггүй',
           style: const TextStyle(
             fontWeight: FontWeight.w600,
             shadows: [
@@ -585,13 +585,10 @@ class ClothesDetailScreen extends StatelessWidget {
             ),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('Added to favorites'),
+                const SnackBar(
+                  content: Text('Дуртай болгосон'),
                   duration: const Duration(seconds: 1),
                   behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
                 ),
               );
             },
@@ -608,7 +605,7 @@ class ClothesDetailScreen extends StatelessWidget {
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Share option coming soon'),
+                  content: Text('Хуваалцах сонголт удахгүй ирэх болно'),
                   duration: const Duration(seconds: 1),
                   behavior: SnackBarBehavior.floating,
                 ),
@@ -643,7 +640,7 @@ class ClothesDetailScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    clothes['title'] ?? 'No title',
+                    clothes['title'] ?? 'Гарчиггүй',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -676,7 +673,7 @@ class ClothesDetailScreen extends StatelessWidget {
                           child: ElevatedButton.icon(
                             onPressed: () => _handleBuy(context),
                             icon: const Icon(Icons.shopping_bag),
-                            label: const Text('Buy Now'),
+                            label: const Text('Одоо худалдан авах'),
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               backgroundColor: Theme.of(context).colorScheme.primary,
@@ -694,7 +691,7 @@ class ClothesDetailScreen extends StatelessWidget {
                                   ? null
                                   : () => cartProvider.addToCart(context, clothes['id']),
                               icon: Icon(isInCart ? Icons.check : Icons.add_shopping_cart),
-                              label: Text(isInCart ? 'In Cart' : 'Add to Cart'),
+                              label: Text(isInCart ? 'Сагсанд байна' : 'Сагсанд нэмэх'),
                               style: ElevatedButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 backgroundColor: Theme.of(context).colorScheme.secondary,

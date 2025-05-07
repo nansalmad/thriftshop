@@ -6,7 +6,9 @@ import '../providers/auth_provider.dart';
 import '../models/clothes_category.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://127.0.0.1:8000/api';
+  // Update this to your actual server URL
+  static const String baseUrl = 'http://127.0.0.1:8000/api';  // For Android emulator
+  // static const String baseUrl = 'http://localhost:8000/api';  // For iOS simulator
   final _storage = const FlutterSecureStorage();
 
   // Auth APIs
@@ -36,24 +38,41 @@ class ApiService {
     String firstName,
     String lastName,
   ) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/register/'),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: json.encode({
-        'username': username,
-        'password': password,
-        'email': email,
-        'first_name': firstName,
-        'last_name': lastName,
-      }),
-    );
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/register/'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'username': username,
+          'password': password,
+          'email': email,
+          'first_name': firstName,
+          'last_name': lastName,
+        }),
+      );
 
-    if (response.statusCode == 201) {
-      return json.decode(utf8.decode(response.bodyBytes));
-    } else {
-      throw Exception('Failed to register');
+      if (response.statusCode == 201) {
+        return json.decode(utf8.decode(response.bodyBytes));
+      } else {
+        final errorData = json.decode(utf8.decode(response.bodyBytes));
+        if (errorData is Map<String, dynamic>) {
+          // Handle specific error messages from the server
+          final errorMessage = errorData.values.first;
+          if (errorMessage is List) {
+            throw Exception(errorMessage.first);
+          } else if (errorMessage is String) {
+            throw Exception(errorMessage);
+          }
+        }
+        throw Exception('Failed to register: ${response.statusCode}');
+      }
+    } catch (e) {
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception('Network error: ${e.toString()}');
     }
   }
 

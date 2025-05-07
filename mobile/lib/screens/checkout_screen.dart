@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
 import '../providers/auth_provider.dart';
-import '../services/order_service.dart'; // <-- Use your new service
+import '../providers/clothes_provider.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -34,23 +34,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     try {
       final cartProvider = Provider.of<CartProvider>(context, listen: false);
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final orderService = OrderService();
+      final clothesProvider = Provider.of<ClothesProvider>(context, listen: false);
 
-      // Use first item's cartId for placing the order
-      final cartItem = cartProvider.cartItems.first;
-      final cartId = cartItem['id'] as int;
-
-      final order = await orderService.createOrder(
-        cartId,
-        {
-          'name': _nameController.text,
-          'phone': _phoneController.text,
-          'address': _addressController.text,
-        },
-      );
+      // Buy each item in the cart
+      for (var item in cartProvider.cartItems) {
+        final clothesId = item['clothes']['id'] as int;
+        await clothesProvider.buyClothes(clothesId);
+      }
 
       if (mounted) {
+        // Clear the cart after successful purchase
         for (var item in cartProvider.cartItems) {
           await cartProvider.removeFromCart(context, item['id']);
         }
@@ -59,17 +52,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           context: context,
           barrierDismissible: false,
           builder: (context) => AlertDialog(
-            title: const Text('Order Placed Successfully'),
+            title: const Text('Purchase Successful'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Order ID: ${order['id']}'),
+                Text('Number of items purchased: ${cartProvider.cartItems.length}'),
                 const SizedBox(height: 8),
                 Text('Subtotal: \$${cartProvider.total.toStringAsFixed(2)}'),
                 const SizedBox(height: 4),
-                Text('Shipping: Free',
-                    style: TextStyle(color: Colors.green[700])),
+                Text('Shipping: Free', style: TextStyle(color: Colors.green[700])),
                 const SizedBox(height: 4),
                 Text(
                   'Total Amount: \$${cartProvider.total.toStringAsFixed(2)}',
@@ -77,7 +69,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'The seller will contact you shortly to arrange payment and delivery.',
+                  'The sellers will contact you shortly to arrange payment and delivery.',
                   style: TextStyle(fontSize: 14),
                 ),
               ],
@@ -97,7 +89,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to place order: ${e.toString()}'),
+            content: Text('Failed to complete purchase: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );

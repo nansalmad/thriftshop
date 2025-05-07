@@ -19,7 +19,7 @@ class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=False)
     profile_image = serializers.CharField(write_only=True, required=False, allow_null=True)
-    username = serializers.CharField(read_only=True)  # Make username read-only
+    username = serializers.CharField(required=True)  # Make username required and not read-only
 
     class Meta:
         model = User
@@ -63,8 +63,8 @@ class UserSerializer(serializers.ModelSerializer):
         password2 = validated_data.pop('password2', None)
         user = User.objects.create_user(**validated_data)
         
-        # Create profile for new user
-        profile = UserProfile.objects.create(user=user)
+        # Get or create profile for new user
+        profile, created = UserProfile.objects.get_or_create(user=user)
         if profile_image:
             profile.profile_image = profile_image
             profile.save()

@@ -519,6 +519,19 @@ class UserProfileViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
     
     @action(detail=True, methods=['get'])
+    def bought_items(self, request, pk=None):
+        user = self.get_object()
+        # Get all orders made by the user
+        orders = Order.objects.filter(user=user)
+        # Get all clothes items from these orders
+        bought_items = Clothes.objects.filter(
+            cartitem__cart__order__in=orders,
+            is_sold=True
+        ).distinct()
+        serializer = ClothesSerializer(bought_items, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'])
     def ratings(self, request, pk=None):
         user = self.get_object()
         ratings = SellerRating.objects.filter(seller=user)

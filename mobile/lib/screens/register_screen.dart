@@ -75,8 +75,21 @@ class _RegisterScreenState extends State<RegisterScreen>
       Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
       if (!mounted) return;
+      String errorMessage = e.toString().replaceAll('Exception: ', '');
+      
+      // Handle specific error cases
+      if (errorMessage.contains('Network error')) {
+        errorMessage = 'Unable to connect to the server. Please check your internet connection.';
+      } else if (errorMessage.contains('username already exists')) {
+        errorMessage = 'This username is already taken. Please choose another one.';
+      } else if (errorMessage.contains('email already exists')) {
+        errorMessage = 'This email is already registered. Please use another email.';
+      } else if (errorMessage.contains('password')) {
+        errorMessage = 'Password must be at least 8 characters long.';
+      }
+      
       setState(() {
-        _errorMessage = e.toString().replaceAll('Exception: ', '');
+        _errorMessage = errorMessage;
       });
     } finally {
       if (mounted) {
