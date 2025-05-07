@@ -20,10 +20,20 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _sizeController = TextEditingController();
+  final _brandController = TextEditingController();
+  final _pickupLocationController = TextEditingController();
+  final _shippingCostController = TextEditingController();
+  final _reasonController = TextEditingController();
+  final _originalPriceController = TextEditingController();
+
   XFile? _imageFile;
   String? _imageBase64;
   String _selectedGender = 'U';
+  String _selectedCondition = 'good';
   int? _selectedCategoryId;
+  bool _availableForPickup = false;
+  bool _isSubmitting = false;
 
   final Map<String, String> _genderChoices = {
     'M': 'Male',
@@ -31,136 +41,111 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
     'U': 'Unisex',
   };
 
+  final Map<String, String> _conditionChoices = {
+    'new': 'Brand New (with tags)',
+    'like_new': 'Like New',
+    'good': 'Good',
+    'fair': 'Fair',
+    'poor': 'Poor',
+  };
+
   Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1200,
+        maxHeight: 1200,
+        imageQuality: 80,
+      );
 
-    if (pickedFile != null) {
-      setState(() {
-        _imageFile = pickedFile;
-      });
-
-      final bytes = await pickedFile.readAsBytes();
-      setState(() {
-        _imageBase64 = base64Encode(bytes);
-      });
-    }
-  }
-
-  Widget _buildImagePreview() {
-    if (_imageFile == null) {
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.add_a_photo,
-            size: 50,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Tap to add image',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[600],
-                ),
-          ),
-        ],
+      if (pickedFile != null) {
+        final bytes = await pickedFile.readAsBytes();
+        setState(() {
+          _imageFile = pickedFile;
+          _imageBase64 = base64Encode(bytes);
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error picking image: $e')),
       );
     }
-
-    return Stack(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: kIsWeb
-              ? Image.network(
-                  _imageFile!.path,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: double.infinity,
-                )
-              : Image.file(
-                  File(_imageFile!.path),
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: double.infinity,
-                ),
-        ),
-        Positioned(
-          right: 8,
-          top: 8,
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.7),
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.close, color: Colors.white, size: 20),
-              onPressed: () {
-                setState(() {
-                  _imageFile = null;
-                  _imageBase64 = null;
-                });
-              },
-            ),
-          ),
-        ),
-      ],
-    );
   }
 
   Future<void> _submitForm() async {
-    if (!_formKey.currentState!.validate() ||
-        _imageBase64 == null ||
-        _selectedCategoryId == null) {
+    if (!_formKey.currentState!.validate()) return;
+    if (_imageBase64 == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Please fill all fields and select an image'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
+        const SnackBar(content: Text('Please select an image')),
+      );
+      return;
+    }
+    if (_selectedCategoryId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a category')),
       );
       return;
     }
 
+    setState(() => _isSubmitting = true);
+
     try {
+      // Parse price and original price
+      final price = double.parse(_priceController.text);
+      final originalPrice = _originalPriceController.text.isNotEmpty 
+          ? double.parse(_originalPriceController.text) 
+          : null;
+      
+      // Parse shipping cost
+      final shippingCost = _shippingCostController.text.isNotEmpty 
+          ? double.parse(_shippingCostController.text) 
+          : null;
+
+      // Get other optional fields
+      final size = _sizeController.text.trim().isNotEmpty ? _sizeController.text.trim() : null;
+      final brand = _brandController.text.trim().isNotEmpty ? _brandController.text.trim() : null;
+      final pickupLocation = _pickupLocationController.text.trim().isNotEmpty 
+          ? _pickupLocationController.text.trim() 
+          : null;
+      final reasonForSale = _reasonController.text.trim().isNotEmpty 
+          ? _reasonController.text.trim() 
+          : null;
+
       await Provider.of<ClothesProvider>(context, listen: false).addClothes(
-        _titleController.text,
-        _descriptionController.text,
-        double.parse(_priceController.text),
+        _titleController.text.trim(),
+        _descriptionController.text.trim(),
+        price,
         _imageBase64!,
-        _phoneController.text,
+        _phoneController.text.trim(),
         _selectedCategoryId!,
         _selectedGender,
+        condition: _selectedCondition,
+        originalPrice: originalPrice,
+        size: size,
+        brand: brand,
+        availableForPickup: _availableForPickup,
+        pickupLocation: pickupLocation,
+        shippingCost: shippingCost,
+        reasonForSale: reasonForSale,
       );
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Clothes added successfully!'),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-      );
-      Navigator.pop(context);
+      
+      // Refresh the clothes list before popping
+      await Provider.of<ClothesProvider>(context, listen: false).loadClothes();
+      
+      Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Failed to add clothes'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
+        SnackBar(content: Text('Error: ${e.toString()}')),
       );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 
@@ -170,252 +155,250 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
     _descriptionController.dispose();
     _priceController.dispose();
     _phoneController.dispose();
+    _sizeController.dispose();
+    _brandController.dispose();
+    _pickupLocationController.dispose();
+    _shippingCostController.dispose();
+    _reasonController.dispose();
+    _originalPriceController.dispose();
     super.dispose();
+  }
+
+  Widget _buildImagePreview() {
+    if (_imageFile == null) {
+      return Container(
+        height: 200,
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Center(child: Icon(Icons.add_a_photo, size: 50)),
+      );
+    }
+
+    return Stack(
+      children: [
+        Container(
+          height: 200,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            image: DecorationImage(
+              image: kIsWeb
+                  ? NetworkImage(_imageFile!.path)
+                  : FileImage(File(_imageFile!.path)) as ImageProvider,
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
+        Positioned(
+          top: 8,
+          right: 8,
+          child: CircleAvatar(
+            backgroundColor: Colors.black54,
+            child: IconButton(
+              icon: const Icon(Icons.close, color: Colors.white),
+              onPressed: () => setState(() {
+                _imageFile = null;
+                _imageBase64 = null;
+              }),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Add New Clothing Item'),
-        centerTitle: true,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Image Picker
-              GestureDetector(
-                onTap: _pickImage,
-                child: Container(
-                  height: 220,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: theme.colorScheme.outline.withOpacity(0.3),
-                      width: 1.5,
+      appBar: AppBar(title: const Text('Add New Item')),
+      body: _isSubmitting
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    // Image Picker
+                    GestureDetector(
+                      onTap: _pickImage,
+                      child: _buildImagePreview(),
                     ),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: _buildImagePreview(),
-                ),
-              ),
-              const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
-              // Title Field
-              TextFormField(
-                controller: _titleController,
-                decoration: InputDecoration(
-                  labelText: 'Title',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(
-                      color: theme.colorScheme.outline.withOpacity(0.4),
+                    // Title
+                    TextFormField(
+                      controller: _titleController,
+                      decoration: const InputDecoration(labelText: 'Title*'),
+                      validator: (value) =>
+                          value?.isEmpty ?? true ? 'Required' : null,
                     ),
-                  ),
-                  filled: true,
-                  fillColor: theme.colorScheme.surfaceVariant.withOpacity(0.2),
-                ),
-                style: theme.textTheme.bodyLarge,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a title';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
 
-              // Description Field
-              TextFormField(
-                controller: _descriptionController,
-                decoration: InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  filled: true,
-                  fillColor: theme.colorScheme.surfaceVariant.withOpacity(0.2),
-                ),
-                maxLines: 3,
-                style: theme.textTheme.bodyLarge,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a description';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Price Field
-              TextFormField(
-                controller: _priceController,
-                decoration: InputDecoration(
-                  labelText: 'Price',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  prefixText: '\$ ',
-                  filled: true,
-                  fillColor: theme.colorScheme.surfaceVariant.withOpacity(0.2),
-                ),
-                keyboardType: TextInputType.number,
-                style: theme.textTheme.bodyLarge,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a price';
-                  }
-                  if (double.tryParse(value) == null) {
-                    return 'Please enter a valid price';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Phone Field
-              TextFormField(
-                controller: _phoneController,
-                decoration: InputDecoration(
-                  labelText: 'Phone Number',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  filled: true,
-                  fillColor: theme.colorScheme.surfaceVariant.withOpacity(0.2),
-                ),
-                keyboardType: TextInputType.phone,
-                style: theme.textTheme.bodyLarge,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a phone number';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Gender Dropdown
-              DropdownButtonFormField<String>(
-                value: _selectedGender,
-                decoration: InputDecoration(
-                  labelText: 'Gender',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  filled: true,
-                  fillColor: theme.colorScheme.surfaceVariant.withOpacity(0.2),
-                ),
-                dropdownColor: theme.colorScheme.surface,
-                items: _genderChoices.entries.map((entry) {
-                  return DropdownMenuItem<String>(
-                    value: entry.key,
-                    child: Text(
-                      entry.value,
-                      style: theme.textTheme.bodyLarge,
+                    // Description
+                    TextFormField(
+                      controller: _descriptionController,
+                      decoration: const InputDecoration(labelText: 'Description*'),
+                      maxLines: 3,
+                      validator: (value) =>
+                          value?.isEmpty ?? true ? 'Required' : null,
                     ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _selectedGender = value;
-                    });
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
 
-              // Category Dropdown
-              FutureBuilder<List<ClothesCategory>>(
-                future: Provider.of<ClothesProvider>(context, listen: false)
-                    .getCategories(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
+                    // Price
+                    TextFormField(
+                      controller: _priceController,
+                      decoration: const InputDecoration(
+                          labelText: 'Price*', prefixText: '\$ '),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      validator: (value) {
+                        if (value?.isEmpty ?? true) return 'Required';
+                        final price = double.tryParse(value!);
+                        if (price == null) return 'Invalid number';
+                        if (price <= 0) return 'Price must be greater than 0';
+                        return null;
+                      },
+                    ),
 
-                  if (snapshot.hasError) {
-                    return Text(
-                      'Error loading categories',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.error,
+                    // Original Price
+                    TextFormField(
+                      controller: _originalPriceController,
+                      decoration: const InputDecoration(
+                          labelText: 'Original Price', prefixText: '\$ '),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      validator: (value) {
+                        if (value?.isEmpty ?? true) return null;
+                        final price = double.tryParse(value!);
+                        if (price == null) return 'Invalid number';
+                        if (price <= 0) return 'Price must be greater than 0';
+                        return null;
+                      },
+                    ),
+
+                    // Phone
+                    TextFormField(
+                      controller: _phoneController,
+                      decoration: const InputDecoration(labelText: 'Contact Phone*'),
+                      keyboardType: TextInputType.phone,
+                      validator: (value) {
+                        if (value?.isEmpty ?? true) return 'Required';
+                        if (!RegExp(r'^\+?[\d\s-]{10,}$').hasMatch(value!)) {
+                          return 'Enter a valid phone number';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    // Size
+                    TextFormField(
+                      controller: _sizeController,
+                      decoration: const InputDecoration(labelText: 'Size'),
+                    ),
+
+                    // Brand
+                    TextFormField(
+                      controller: _brandController,
+                      decoration: const InputDecoration(labelText: 'Brand'),
+                    ),
+
+                    // Condition
+                    DropdownButtonFormField<String>(
+                      value: _selectedCondition,
+                      items: _conditionChoices.entries
+                          .map((e) =>
+                              DropdownMenuItem(value: e.key, child: Text(e.value)))
+                          .toList(),
+                      onChanged: (value) =>
+                          setState(() => _selectedCondition = value!),
+                      decoration: const InputDecoration(labelText: 'Condition*'),
+                    ),
+
+                    // Gender
+                    DropdownButtonFormField<String>(
+                      value: _selectedGender,
+                      items: _genderChoices.entries
+                          .map((e) =>
+                              DropdownMenuItem(value: e.key, child: Text(e.value)))
+                          .toList(),
+                      onChanged: (value) => setState(() => _selectedGender = value!),
+                      decoration: const InputDecoration(labelText: 'Gender*'),
+                    ),
+
+                    // Category
+                    FutureBuilder<List<ClothesCategory>>(
+                      future: Provider.of<ClothesProvider>(context, listen: false)
+                          .getCategories(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const CircularProgressIndicator();
+                        }
+                        if (snapshot.hasError) {
+                          return Text('Error: ${snapshot.error}');
+                        }
+                        return DropdownButtonFormField<int>(
+                          value: _selectedCategoryId,
+                          items: snapshot.data
+                              ?.map((category) => DropdownMenuItem(
+                                    value: category.id,
+                                    child: Text(category.name),
+                                  ))
+                              .toList(),
+                          onChanged: (value) =>
+                              setState(() => _selectedCategoryId = value),
+                          decoration: const InputDecoration(labelText: 'Category*'),
+                          validator: (value) => value == null ? 'Required' : null,
+                        );
+                      },
+                    ),
+
+                    // Pickup Options
+                    SwitchListTile(
+                      title: const Text('Available for Pickup'),
+                      value: _availableForPickup,
+                      onChanged: (value) =>
+                          setState(() => _availableForPickup = value),
+                    ),
+                    if (_availableForPickup)
+                      TextFormField(
+                        controller: _pickupLocationController,
+                        decoration:
+                            const InputDecoration(labelText: 'Pickup Location'),
+                        validator: (value) =>
+                            _availableForPickup && (value?.isEmpty ?? true)
+                                ? 'Required when pickup is available'
+                                : null,
                       ),
-                    );
-                  }
 
-                  final categories = snapshot.data ?? [];
-                  return DropdownButtonFormField<int>(
-                    value: _selectedCategoryId,
-                    decoration: InputDecoration(
-                      labelText: 'Category',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      filled: true,
-                      fillColor:
-                          theme.colorScheme.surfaceVariant.withOpacity(0.2),
+                    // Shipping Cost
+                    TextFormField(
+                      controller: _shippingCostController,
+                      decoration: const InputDecoration(
+                          labelText: 'Shipping Cost', prefixText: '\$ '),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value?.isNotEmpty ?? false) {
+                          if (double.tryParse(value!) == null) return 'Invalid number';
+                          if (double.parse(value) < 0) return 'Cost cannot be negative';
+                        }
+                        return null;
+                      },
                     ),
-                    dropdownColor: theme.colorScheme.surface,
-                    items: categories.map((category) {
-                      return DropdownMenuItem<int>(
-                        value: category.id,
-                        child: Text(
-                          category.name,
-                          style: theme.textTheme.bodyLarge,
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          _selectedCategoryId = value;
-                        });
-                      }
-                    },
-                    validator: (value) {
-                      if (value == null) {
-                        return 'Please select a category';
-                      }
-                      return null;
-                    },
-                  );
-                },
-              ),
-              const SizedBox(height: 32),
 
-              // Submit Button
-              ElevatedButton(
-                onPressed: _submitForm,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.colorScheme.primary,
-                  foregroundColor: theme.colorScheme.onPrimary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 2,
-                ),
-                child: Text(
-                  'Add Clothing Item',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: theme.colorScheme.onPrimary,
-                    fontWeight: FontWeight.w600,
-                  ),
+                    // Reason for Sale
+                    TextFormField(
+                      controller: _reasonController,
+                      decoration: const InputDecoration(labelText: 'Reason for Sale'),
+                      maxLines: 2,
+                    ),
+
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: _isSubmitting ? null : _submitForm,
+                      child: const Text('Submit'),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 }

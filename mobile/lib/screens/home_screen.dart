@@ -9,7 +9,7 @@ import '../providers/cart_provider.dart';
 import '../models/clothes_category.dart';
 import 'cart_screen.dart';
 import 'add_clothes_screen.dart';
-import 'my_listings_screen.dart';
+import 'profile_screen.dart';
 import 'login_screen.dart';
 import 'clothes_detail_screen.dart';
 import 'category_items_screen.dart';
@@ -32,7 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _pages = [
     const _HomeContent(),
     const CartScreen(),
-    const MyListingsScreen(),
+    const ProfileScreen(),
   ];
 
   // Search and filter state
@@ -424,7 +424,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             _HomeContent(searchQuery: _searchQuery),
             const CartScreen(),
-            const MyListingsScreen(),
+            const ProfileScreen(),
           ],
         ),
       ),
@@ -561,8 +561,10 @@ class _HomeContent extends StatelessWidget {
 
   Widget _buildFeaturedCard(
       BuildContext context, Map<String, dynamic> clothes) {
+    final bool isSold = clothes['is_sold'] == true;
+    
     return GestureDetector(
-      onTap: () {
+      onTap: isSold ? null : () {
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -605,10 +607,10 @@ class _HomeContent extends StatelessWidget {
                       children: [
                         Text(
                           clothes['title'] ?? 'No title',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
-                            color: Colors.black,
+                            color: isSold ? Colors.grey : Colors.black,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -616,8 +618,8 @@ class _HomeContent extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           '\$${_formatPrice(clothes['price'])}',
-                          style: const TextStyle(
-                            color: Colors.black,
+                          style: TextStyle(
+                            color: isSold ? Colors.grey : Colors.black,
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                           ),
@@ -630,6 +632,25 @@ class _HomeContent extends StatelessWidget {
                 ),
               ],
             ),
+            if (isSold)
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'SOLD',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             Positioned(
               top: 8,
               right: 8,
@@ -656,8 +677,10 @@ class _HomeContent extends StatelessWidget {
   }
 
   Widget _buildClothesCard(BuildContext context, Map<String, dynamic> clothes) {
+    final bool isSold = clothes['is_sold'] == true;
+    
     return GestureDetector(
-      onTap: () {
+      onTap: isSold ? null : () {
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -703,10 +726,10 @@ class _HomeContent extends StatelessWidget {
                       children: [
                         Text(
                           clothes['title'] ?? 'No title',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
-                            color: Colors.black,
+                            color: isSold ? Colors.grey : Colors.black,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -717,15 +740,15 @@ class _HomeContent extends StatelessWidget {
                           children: [
                             Text(
                               '\$${_formatPrice(clothes['price'])}',
-                              style: const TextStyle(
-                                color: Colors.black,
+                              style: TextStyle(
+                                color: isSold ? Colors.grey : Colors.black,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
                               ),
                             ),
                             Icon(
                               Icons.favorite_border,
-                              color: Colors.grey[800],
+                              color: isSold ? Colors.grey : Colors.grey[800],
                               size: 18,
                             ),
                           ],
@@ -738,13 +761,31 @@ class _HomeContent extends StatelessWidget {
                 ),
               ],
             ),
+            if (isSold)
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'SOLD',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             if (clothes['discount'] != null && clothes['discount'] > 0)
               Positioned(
                 top: 8,
                 left: 8,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.black,
                     borderRadius: BorderRadius.circular(12),
@@ -1028,33 +1069,34 @@ class _HomeContent extends StatelessWidget {
     return Consumer<CartProvider>(
       builder: (context, cartProvider, child) {
         final bool isInCart = cartProvider.isInCart(clothes['id']);
+        final bool isSold = clothes['is_sold'] == true;
 
         return SizedBox(
           width: double.infinity,
           height: 32,
           child: ElevatedButton.icon(
-            onPressed: isInCart ? null : () => _addToCart(context, clothes),
+            onPressed: isSold || isInCart ? null : () => _addToCart(context, clothes),
             icon: Icon(
-              isInCart ? Icons.check_circle : Icons.add_shopping_cart,
+              isSold ? Icons.block : (isInCart ? Icons.check_circle : Icons.add_shopping_cart),
               size: 16,
-              color: isInCart ? Colors.white : Colors.black,
+              color: isSold || isInCart ? Colors.white : Colors.black,
             ),
             label: Text(
-              isInCart ? 'Нэмсэн' : 'Сагсанд нэмэх',
+              isSold ? 'Зарагдсан' : (isInCart ? 'Нэмсэн' : 'Сагсанд нэмэх'),
               style: TextStyle(
-                color: isInCart ? Colors.white : Colors.black,
+                color: isSold || isInCart ? Colors.white : Colors.black,
                 fontSize: 12,
               ),
             ),
             style: ElevatedButton.styleFrom(
               padding: EdgeInsets.zero,
-              backgroundColor: isInCart ? Colors.black : Colors.white,
-              disabledBackgroundColor: Colors.black,
+              backgroundColor: isSold ? Colors.grey : (isInCart ? Colors.black : Colors.white),
+              disabledBackgroundColor: isSold ? Colors.grey : Colors.black,
               disabledForegroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
                 side: BorderSide(
-                  color: isInCart ? Colors.black : Colors.black,
+                  color: isSold ? Colors.grey : (isInCart ? Colors.black : Colors.black),
                   width: 1,
                 ),
               ),

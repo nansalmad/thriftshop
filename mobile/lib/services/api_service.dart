@@ -67,6 +67,67 @@ class ApiService {
     }
   }
 
+  // Profile APIs
+  Future<Map<String, dynamic>> updateProfile({
+    required String firstName,
+    required String lastName,
+    required String email,
+    String? profileImage,
+  }) async {
+    final token = await _storage.read(key: 'token');
+    if (token == null) throw Exception('Authentication required');
+
+    final response = await http.patch(
+      Uri.parse('$baseUrl/users/profile/'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: json.encode({
+        'first_name': firstName,
+        'last_name': lastName,
+        'email': email,
+        if (profileImage != null) 'profile_image': profileImage,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(utf8.decode(response.bodyBytes));
+    } else {
+      final error = json.decode(utf8.decode(response.bodyBytes));
+      throw Exception(error['error'] ?? 'Failed to update profile');
+    }
+  }
+
+  Future<Map<String, dynamic>> updateProfileImage(String base64Image) async {
+    final token = await _storage.read(key: 'token');
+    if (token == null) throw Exception('Authentication required');
+
+    // Format the base64 image as a data URL if it's not already
+    String formattedImage = base64Image;
+    if (!base64Image.startsWith('data:image')) {
+      formattedImage = 'data:image/jpeg;base64,$base64Image';
+    }
+
+    final response = await http.patch(
+      Uri.parse('$baseUrl/users/profile/'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: json.encode({
+        'profile_image': formattedImage,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(utf8.decode(response.bodyBytes));
+    } else {
+      final error = json.decode(utf8.decode(response.bodyBytes));
+      throw Exception(error['error'] ?? 'Failed to update profile image');
+    }
+  }
+
   // Clothes APIs
   Future<List<Map<String, dynamic>>> getClothes({
     String? searchQuery,
@@ -125,12 +186,18 @@ class ApiService {
     String imageBase64,
     String phoneNumber,
     int categoryId,
-    String gender,
-  ) async {
+    String gender, {
+    String? condition,
+    double? originalPrice,
+    String? size,
+    String? brand,
+    bool? availableForPickup,
+    String? pickupLocation,
+    double? shippingCost,
+    String? reasonForSale,
+  }) async {
     final token = await _storage.read(key: 'token');
-    if (token == null) {
-      throw Exception('Authentication required');
-    }
+    if (token == null) throw Exception('Authentication required');
 
     final response = await http.post(
       Uri.parse('$baseUrl/clothes/'),
@@ -146,13 +213,21 @@ class ApiService {
         'phone_number': phoneNumber,
         'category': categoryId,
         'gender': gender,
+        'condition': condition,
+        'original_price': originalPrice,
+        'size': size,
+        'brand': brand,
+        'available_for_pickup': availableForPickup,
+        'pickup_location': pickupLocation,
+        'shipping_cost': shippingCost,
+        'reason_for_sale': reasonForSale,
       }),
     );
 
     if (response.statusCode == 201) {
-      return json.decode(utf8.decode(response.bodyBytes));
+      return json.decode(response.body);
     } else {
-      throw Exception('Failed to add clothes');
+      throw Exception('Failed to add clothes: ${response.body}');
     }
   }
 
@@ -184,7 +259,7 @@ class ApiService {
   Future<List<Map<String, dynamic>>> getCart() async {
     final token = await _storage.read(key: 'token');
     final sessionId = await _storage.read(key: 'session_id');
-    
+
     final response = await http.get(
       Uri.parse('$baseUrl/cart/'),
       headers: {
@@ -196,12 +271,12 @@ class ApiService {
 
     if (response.statusCode == 200) {
       final data = json.decode(utf8.decode(response.bodyBytes));
-      
+
       final newSessionId = response.headers['x-session-id'];
       if (newSessionId != null) {
         await _storage.write(key: 'session_id', value: newSessionId);
       }
-      
+
       if (data is List) {
         return List<Map<String, dynamic>>.from(data);
       } else if (data is Map && data.containsKey('items')) {
@@ -209,7 +284,7 @@ class ApiService {
       } else if (data is Map && data.containsKey('cart_items')) {
         return List<Map<String, dynamic>>.from(data['cart_items']);
       }
-      
+
       throw Exception('Unexpected cart data format');
     } else if (response.statusCode == 401) {
       throw Exception('Authentication required');
@@ -221,7 +296,7 @@ class ApiService {
   Future<void> addToCart(int clothesId) async {
     final token = await _storage.read(key: 'token');
     final sessionId = await _storage.read(key: 'session_id');
-    
+
     final response = await http.post(
       Uri.parse('$baseUrl/cart/add/'),
       headers: {
@@ -248,7 +323,7 @@ class ApiService {
   Future<void> removeFromCart(int cartItemId) async {
     final token = await _storage.read(key: 'token');
     final sessionId = await _storage.read(key: 'session_id');
-    
+
     final response = await http.delete(
       Uri.parse('$baseUrl/cart/$cartItemId/remove/'),
       headers: {
@@ -267,7 +342,7 @@ class ApiService {
   Future<void> updateCartItemQuantity(int cartItemId, int quantity) async {
     final token = await _storage.read(key: 'token');
     final sessionId = await _storage.read(key: 'session_id');
-    
+
     final response = await http.put(
       Uri.parse('$baseUrl/cart/$cartItemId/update_quantity/'),
       headers: {
@@ -290,7 +365,7 @@ class ApiService {
   Future<List<Map<String, dynamic>>> getOrders() async {
     final token = await _storage.read(key: 'token');
     final sessionId = await _storage.read(key: 'session_id');
-    
+
     final response = await http.get(
       Uri.parse('$baseUrl/orders/'),
       headers: {
@@ -307,10 +382,11 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> createOrder(int cartId, Map<String, String> shippingDetails) async {
+  Future<Map<String, dynamic>> createOrder(
+      int cartId, Map<String, String> shippingDetails) async {
     final token = await _storage.read(key: 'token');
     final sessionId = await _storage.read(key: 'session_id');
-    
+
     final response = await http.post(
       Uri.parse('$baseUrl/orders/'),
       headers: {
@@ -337,7 +413,7 @@ class ApiService {
   Future<Map<String, dynamic>> getOrderDetails(int orderId) async {
     final token = await _storage.read(key: 'token');
     final sessionId = await _storage.read(key: 'session_id');
-    
+
     final response = await http.get(
       Uri.parse('$baseUrl/orders/$orderId/'),
       headers: {
@@ -352,4 +428,24 @@ class ApiService {
       throw Exception('Failed to load order details');
     }
   }
-} 
+
+  Future<Map<String, dynamic>> buyClothes(int clothesId) async {
+    final token = await _storage.read(key: 'token');
+    if (token == null) throw Exception('Authentication required');
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/clothes/$clothesId/buy/'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(utf8.decode(response.bodyBytes));
+    } else {
+      final error = json.decode(response.body);
+      throw Exception(error['error'] ?? 'Failed to buy item');
+    }
+  }
+}

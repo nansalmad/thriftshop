@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
+import '../providers/clothes_provider.dart';
 
 class ClothesDetailScreen extends StatelessWidget {
   final Map<String, dynamic> clothes;
@@ -24,6 +25,38 @@ class ClothesDetailScreen extends StatelessWidget {
     }
     
     return '0.00';
+  }
+
+  String _formatGender(String? gender) {
+    if (gender == null) return 'Not specified';
+    switch (gender) {
+      case 'M': return 'Male';
+      case 'F': return 'Female';
+      case 'U': return 'Unisex';
+      default: return 'Not specified';
+    }
+  }
+
+  String _formatCondition(String? condition) {
+    if (condition == null) return 'Not specified';
+    switch (condition) {
+      case 'new': return 'Brand New (with tags)';
+      case 'like_new': return 'Like New';
+      case 'good': return 'Good';
+      case 'fair': return 'Fair';
+      case 'poor': return 'Poor';
+      default: return 'Not specified';
+    }
+  }
+
+  String _formatDate(String? dateStr) {
+    if (dateStr == null) return 'Not available';
+    try {
+      final date = DateTime.parse(dateStr);
+      return '${date.day}/${date.month}/${date.year}';
+    } catch (e) {
+      return 'Not available';
+    }
   }
 
   Widget _buildProductImage() {
@@ -70,6 +103,32 @@ class ClothesDetailScreen extends StatelessWidget {
                 ),
               ),
             ),
+
+            // Sold overlay
+            if (clothes['is_sold'] == true)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.black.withOpacity(0.5),
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'SOLD',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -99,19 +158,32 @@ class ClothesDetailScreen extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            '\$${_formatPrice(clothes['price'])}',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.bold,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '\$${_formatPrice(clothes['price'])}',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              if (clothes['original_price'] != null)
+                Text(
+                  'Original: \$${_formatPrice(clothes['original_price'])}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                        decoration: TextDecoration.lineThrough,
+                      ),
                 ),
+            ],
           ),
           Chip(
-            backgroundColor: Colors.green[50],
+            backgroundColor: clothes['is_sold'] == true ? Colors.red[50] : Colors.green[50],
             label: Text(
-              'In Stock',
+              clothes['is_sold'] == true ? 'Sold' : 'Available',
               style: TextStyle(
-                color: Colors.green[800],
+                color: clothes['is_sold'] == true ? Colors.red[800] : Colors.green[800],
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -121,6 +193,86 @@ class ClothesDetailScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildOwnerSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.person_outline,
+              color: Theme.of(context).colorScheme.primary,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Seller Information',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: Colors.grey[200],
+                child: clothes['owner']?['profile_image'] != null
+                    ? ClipOval(
+                        child: Image.memory(
+                          base64Decode(clothes['owner']['profile_image']),
+                          width: 48,
+                          height: 48,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    : Text(
+                        clothes['owner']?['first_name']?.isNotEmpty == true
+                            ? clothes['owner']['first_name'][0].toUpperCase()
+                            : '?',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${clothes['owner']?['first_name'] ?? ''} ${clothes['owner']?['last_name'] ?? ''}',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Member since ${_formatDate(clothes['owner']?['date_joined'])}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -156,6 +308,125 @@ class ClothesDetailScreen extends StatelessWidget {
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   height: 1.6,
                 ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDetailsSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.info_outline,
+              color: Theme.of(context).colorScheme.primary,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Item Details',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              _buildDetailRow(context, 'Condition', _formatCondition(clothes['condition'])),
+              _buildDetailRow(context, 'Size', clothes['size'] ?? 'Not specified'),
+              _buildDetailRow(context, 'Gender', _formatGender(clothes['gender'])),
+              _buildDetailRow(context, 'Brand', clothes['brand'] ?? 'Not specified'),
+              if (clothes['original_price'] != null)
+                _buildDetailRow(context, 'Original Price', '\$${_formatPrice(clothes['original_price'])}'),
+              if (clothes['reason_for_sale'] != null)
+                _buildDetailRow(context, 'Reason for Sale', clothes['reason_for_sale']),
+              _buildDetailRow(context, 'Listed On', _formatDate(clothes['created_at'])),
+              _buildDetailRow(context, 'Last Updated', _formatDate(clothes['updated_at'])),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDetailRow(BuildContext context, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                  ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShippingSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.local_shipping_outlined,
+              color: Theme.of(context).colorScheme.primary,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Shipping & Pickup',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              _buildDetailRow(
+                context, 
+                'Pickup Available', 
+                clothes['available_for_pickup'] == true ? 'Yes' : 'No'
+              ),
+              if (clothes['available_for_pickup'] == true && clothes['pickup_location'] != null)
+                _buildDetailRow(context, 'Pickup Location', clothes['pickup_location']),
+              if (clothes['shipping_cost'] != null)
+                _buildDetailRow(context, 'Shipping Cost', '\$${_formatPrice(clothes['shipping_cost'])}'),
+            ],
           ),
         ),
       ],
@@ -232,77 +503,41 @@ class ClothesDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAddToCartButton(BuildContext context) {
-  return Consumer<CartProvider>(
-    builder: (context, cartProvider, child) {
-      final bool isInCart = cartProvider.isInCart(clothes['id']);
+  Future<void> _handleBuy(BuildContext context) async {
+    try {
+      final clothesProvider = Provider.of<ClothesProvider>(context, listen: false);
       
-      return Padding(
-        padding: const EdgeInsets.only(top: 16),
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          transitionBuilder: (child, animation) {
-            return ScaleTransition(scale: animation, child: child);
-          },
-          child: SizedBox(
-            key: ValueKey(isInCart),
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: isInCart
-                  ? null
-                  : () {
-                      cartProvider.addToCart(context, clothes['id']);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('${clothes['title']} added to cart'),
-                          duration: const Duration(seconds: 1),
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      );
-                    },
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 18),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                backgroundColor: isInCart
-                    ? Colors.grey[400]
-                    : Theme.of(context).colorScheme.primary,
-                foregroundColor: isInCart
-                    ? Colors.white
-                    : Theme.of(context).colorScheme.onPrimary,
-                elevation: 2,
-                shadowColor: Theme.of(context)
-                    .colorScheme
-                    .primary
-                    .withOpacity(0.3),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    isInCart ? Icons.check_circle : Icons.shopping_bag_outlined,
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    isInCart ? 'Added to Cart' : 'Add to Cart',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+      // Attempt to buy the item
+      await clothesProvider.buyClothes(clothes['id']);
+      
+      // Get the updated item details
+      final updatedClothes = await clothesProvider.getClothesById(clothes['id']);
+      
+      // Refresh the main clothes list
+      await clothesProvider.loadClothes();
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Item purchased successfully!'),
+            backgroundColor: Colors.green,
           ),
-        ),
-      );
-    },
-  );
-}
+        );
+        
+        // Return to previous screen with the updated clothes data
+        Navigator.pop(context, updatedClothes);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to purchase item: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -424,11 +659,53 @@ class ClothesDetailScreen extends StatelessWidget {
                   const SizedBox(height: 24),
                   _buildPricingSection(context),
                   const SizedBox(height: 32),
+                  _buildOwnerSection(context),
+                  const SizedBox(height: 32),
                   _buildDescriptionSection(context),
+                  const SizedBox(height: 32),
+                  _buildDetailsSection(context),
+                  const SizedBox(height: 32),
+                  _buildShippingSection(context),
                   const SizedBox(height: 32),
                   _buildContactSection(context),
                   const SizedBox(height: 32),
-                  _buildAddToCartButton(context),
+                  Row(
+                    children: [
+                      if (!clothes['is_sold'])
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () => _handleBuy(context),
+                            icon: const Icon(Icons.shopping_bag),
+                            label: const Text('Buy Now'),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                            ),
+                          ),
+                        ),
+                      if (!clothes['is_sold']) const SizedBox(width: 16),
+                      Expanded(
+                        child: Consumer<CartProvider>(
+                          builder: (context, cartProvider, child) {
+                            final isInCart = cartProvider.isInCart(clothes['id']);
+                            return ElevatedButton.icon(
+                              onPressed: clothes['is_sold'] || isInCart
+                                  ? null
+                                  : () => cartProvider.addToCart(context, clothes['id']),
+                              icon: Icon(isInCart ? Icons.check : Icons.add_shopping_cart),
+                              label: Text(isInCart ? 'In Cart' : 'Add to Cart'),
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                backgroundColor: Theme.of(context).colorScheme.secondary,
+                                foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),

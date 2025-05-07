@@ -1,19 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/api_service.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class AuthProvider with ChangeNotifier {
   final _storage = const FlutterSecureStorage();
-  final _apiService = ApiService();
+  final ApiService _apiService = ApiService();
   bool _isAuthenticated = false;
-  bool _isLoading = true;
+  bool _isLoading = false;
   String? _token;
   Map<String, dynamic>? _user;
+  String? _error;
+  final String baseUrl = 'http://127.0.0.1:8000/api';
 
   bool get isAuthenticated => _isAuthenticated;
   bool get isLoading => _isLoading;
   String? get token => _token;
   Map<String, dynamic>? get user => _user;
+  String? get error => _error;
 
   Future<bool> checkAuth() async {
     _isLoading = true;
@@ -39,6 +44,7 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> login(String username, String password) async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
 
     try {
@@ -51,6 +57,7 @@ class AuthProvider with ChangeNotifier {
       _isAuthenticated = false;
       _token = null;
       _user = null;
+      _error = e.toString();
       rethrow;
     } finally {
       _isLoading = false;
@@ -102,6 +109,54 @@ class AuthProvider with ChangeNotifier {
       _isAuthenticated = false;
       _token = null;
       _user = null;
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateProfile({
+    required String firstName,
+    required String lastName,
+    required String email,
+    String? profileImage,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiService.updateProfile(
+        firstName: firstName,
+        lastName: lastName,
+        email: email,
+        profileImage: profileImage,
+      );
+      _user = response;
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateProfileImage(String base64Image) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiService.updateProfileImage(base64Image);
+      _user = response;
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      rethrow;
+    } finally {
       _isLoading = false;
       notifyListeners();
     }

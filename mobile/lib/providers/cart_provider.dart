@@ -7,12 +7,30 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
 class CartProvider with ChangeNotifier {
-  final _apiService = ApiService();
+  final ApiService _apiService = ApiService();
   List<Map<String, dynamic>> _cartItems = [];
   bool _isLoading = false;
 
   List<Map<String, dynamic>> get cartItems => _cartItems;
   bool get isLoading => _isLoading;
+
+  // Add total getter
+  double get total {
+    return _cartItems.fold<double>(
+      0,
+      (sum, item) {
+        final clothes = item['clothes'] as Map<String, dynamic>?;
+        if (clothes == null) return sum;
+        
+        final price = (clothes['price'] is String)
+            ? double.tryParse(clothes['price']) ?? 0.0
+            : (clothes['price'] as num?)?.toDouble() ?? 0.0;
+            
+        final quantity = item['quantity'] as int? ?? 1;
+        return sum + (price * quantity);
+      },
+    );
+  }
 
   /// Check if an item is in the cart
   bool isInCart(int clothesId) {

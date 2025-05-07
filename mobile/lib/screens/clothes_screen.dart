@@ -108,47 +108,90 @@ class _ClothesScreenState extends State<ClothesScreen> {
               return Card(
                 margin: const EdgeInsets.all(8),
                 child: ListTile(
-                  leading: clothes['image_base64'] != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: Image.memory(
-                            base64Decode(clothes['image_base64']),
-                            width: 50,
-                            height: 50,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              print('Error loading image: $error');
-                              return Container(
+                  leading: Stack(
+                    children: [
+                      clothes['image_base64'] != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: Image.memory(
+                                base64Decode(clothes['image_base64']),
                                 width: 50,
                                 height: 50,
-                                color: Colors.grey[200],
-                                child: const Icon(Icons.error_outline),
-                              );
-                            },
-                          ),
-                        )
-                      : Container(
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  print('Error loading image: $error');
+                                  return Container(
+                                    width: 50,
+                                    height: 50,
+                                    color: Colors.grey[200],
+                                    child: const Icon(Icons.error_outline),
+                                  );
+                                },
+                              ),
+                            )
+                          : Container(
+                              width: 50,
+                              height: 50,
+                              color: Colors.grey[200],
+                              child: const Icon(Icons.image_not_supported),
+                            ),
+                      if (clothes['is_sold'] == true)
+                        Container(
                           width: 50,
                           height: 50,
-                          color: Colors.grey[200],
-                          child: const Icon(Icons.image_not_supported),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.5),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'SOLD',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
                         ),
-                  title: Text(clothes['title'] ?? 'No title'),
-                  subtitle: Text('\$${(clothes['price'] as num?)?.toStringAsFixed(2) ?? '0.00'}'),
-                  onTap: () {
-                    Navigator.push(
+                    ],
+                  ),
+                  title: Text(
+                    clothes['title'] ?? 'No title',
+                    style: TextStyle(
+                      color: clothes['is_sold'] == true ? Colors.grey : null,
+                    ),
+                  ),
+                  subtitle: Text(
+                    '\$${(clothes['price'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
+                    style: TextStyle(
+                      color: clothes['is_sold'] == true ? Colors.grey : null,
+                    ),
+                  ),
+                  onTap: () async {
+                    final result = await Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => ClothesDetailScreen(clothes: clothes),
                       ),
                     );
+                    
+                    // If we got updated clothes data back, refresh the list
+                    if (result != null && result is Map<String, dynamic>) {
+                      Provider.of<ClothesProvider>(context, listen: false).loadClothes();
+                    }
                   },
                   trailing: IconButton(
-                    icon: const Icon(Icons.add_shopping_cart),
-                    onPressed: () {
-                      Provider.of<CartProvider>(context, listen: false)
-                          .addToCart(context, clothes['id']);
-                    },
+                    icon: Icon(
+                      Icons.add_shopping_cart,
+                      color: clothes['is_sold'] == true ? Colors.grey : null,
+                    ),
+                    onPressed: clothes['is_sold'] == true
+                        ? null
+                        : () {
+                            Provider.of<CartProvider>(context, listen: false)
+                                .addToCart(context, clothes['id']);
+                          },
                   ),
                 ),
               );

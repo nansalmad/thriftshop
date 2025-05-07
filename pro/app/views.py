@@ -6,12 +6,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from django.shortcuts import get_object_or_404
-from .models import Clothes, Cart, CartItem, Order, Category
-from .serializers import (
-    UserSerializer, LoginSerializer, ClothesSerializer,
-    CartSerializer, CartItemSerializer, OrderSerializer,
-    CategorySerializer
-)
+from .models import *
+from .serializers import *
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework import serializers
@@ -41,6 +37,10 @@ def login_user(request):
             password=serializer.validated_data['password']
         )
         if user:
+            # Ensure user has a profile
+            if not hasattr(user, 'profile'):
+                UserProfile.objects.create(user=user)
+            
             token, _ = Token.objects.get_or_create(user=user)
             return Response({
                 'token': token.key,
@@ -75,7 +75,7 @@ class ClothesViewSet(viewsets.ModelViewSet):
         if self.action in ['create', 'update', 'partial_update', 'destroy', 'my_listings']:
             return [IsAuthenticated()]
         return [AllowAny()]
-
+    
     def get_queryset(self):
         queryset = Clothes.objects.filter(is_sold=False)
         
@@ -108,6 +108,32 @@ class ClothesViewSet(viewsets.ModelViewSet):
     def my_listings(self, request):
         clothes = self.get_queryset().filter(seller=request.user)
         serializer = self.get_serializer(clothes, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def buy(self, request, pk=None):
+        clothes = self.get_object()
+        
+        # Check if item is already sold
+        if clothes.is_sold:
+            return Response(
+                {'error': 'This item has already been sold'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if user is trying to buy their own item
+        if clothes.seller == request.user:
+            return Response(
+                {'error': 'You cannot buy your own item'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Mark the item as sold
+        clothes.is_sold = True
+        clothes.save()
+        
+        # Return the updated item data
+        serializer = self.get_serializer(clothes)
         return Response(serializer.data)
 
 # Cart Views
@@ -266,7 +292,60 @@ class CartViewSet(viewsets.ModelViewSet):
         except CartItem.DoesNotExist:
             return Response({'error': 'Cart item not found'}, status=status.HTTP_404_NOT_FOUND)
 
+class MessageViewSet(viewsets.ModelViewSet):
+    serializer_class = MessageSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        # Users can see messages they sent or received
+        return Message.objects.filter(
+            Q(sender=self.request.user) | Q(recipient=self.request.user)
+        )
+    def perform_create(self, serializer):
+        serializer.save(sender=self.request.user)
+    
+    @action(detail=True, methods=['post'])
+    def mark_as_read(self, request, pk=None):
+        message = self.get_object()
+        if message.recipient != request.user:
+            return Response({'error': 'Not your message'}, status=status.HTTP_403_FORBIDDEN)
+        message.is_read = True
+        message.save()
+        return Response({'status': 'marked as read'})
+
+class SellerRatingViewSet(viewsets.ModelViewSet):
+    serializer_class = SellerRatingSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        # Sellers can see ratings they received
+        # Buyers can see ratings they gave
+        return SellerRating.objects.filter(
+            Q(seller=self.request.user) | Q(buyer=self.request.user))
+    
+    def perform_create(self, serializer):
+        order_id = self.request.data.get('order')
+        try:
+            # Get the order and verify the user is the buyer
+            order = Order.objects.get(id=order_id, user=self.request.user)
+            
+            # Get the seller from the order's items
+            seller = order.cart.items.first().clothes.seller
+            
+            # Check if user has already rated this seller for this order
+            if SellerRating.objects.filter(order=order, buyer=self.request.user).exists():
+                raise serializers.ValidationError({'order': 'You have already rated this seller for this order'})
+            
+            # Check if the order is completed (delivered)
+            if order.status != 'delivered':
+                raise serializers.ValidationError({'order': 'You can only rate sellers after the order is delivered'})
+            
+            serializer.save(buyer=self.request.user, seller=seller, order=order)
+        except Order.DoesNotExist:
+            raise serializers.ValidationError({'order': 'Invalid order ID or you are not the buyer of this order'})
+
 # Order Views
+
 class OrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
     permission_classes = [AllowAny]
@@ -349,3 +428,152 @@ class OrderViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(order)
         return Response(serializer.data)
+    @action(detail=True, methods=['get'])
+    def seller_info(self, request, pk=None):
+        """Get seller contact info (for buyers)"""
+        order = self.get_object()
+        if order.user != request.user:
+            return Response({'error': 'Not your order'}, status=403)
+        
+        # Get seller from first item (assuming single seller per order)
+        seller = order.cart.items.first().clothes.seller
+        return Response({
+            'name': f"{seller.first_name} {seller.last_name}",
+            'email': seller.email,
+            'phone': order.cart.items.first().clothes.phone_number
+        })
+    
+    @action(detail=True, methods=['get'])
+    def buyer_info(self, request, pk=None):
+        """Get buyer info (for sellers)"""
+        order = self.get_object()
+        # Check if current user is seller of any item in order
+        if not order.cart.items.filter(clothes__seller=request.user).exists():
+            return Response({'error': 'Not your sale'}, status=403)
+        
+        return Response({
+            'name': order.shipping_name,
+            'phone': order.shipping_phone,
+            'address': order.shipping_address
+        })
+
+class UserProfileViewSet(viewsets.ModelViewSet):
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
+
+    def partial_update(self, request, *args, **kwargs):
+        kwargs['partial'] = True
+        return self.update(request, *args, **kwargs)
+    
+    @action(detail=True, methods=['get'])
+    def profile(self, request, pk=None):
+        user = self.get_object()
+        serializer = self.get_serializer(user)
+        data = serializer.data
+        
+        # Check if profile is complete
+        is_complete = all([
+            user.first_name,
+            user.last_name,
+            user.email,
+            user.profile.profile_image
+        ])
+        
+        data['is_profile_complete'] = is_complete
+        if not is_complete:
+            data['missing_fields'] = []
+            if not user.first_name:
+                data['missing_fields'].append('first_name')
+            if not user.last_name:
+                data['missing_fields'].append('last_name')
+            if not user.email:
+                data['missing_fields'].append('email')
+            if not user.profile.profile_image:
+                data['missing_fields'].append('profile_image')
+        
+        return Response(data)
+    
+    @action(detail=True, methods=['get'])
+    def selling_items(self, request, pk=None):
+        user = self.get_object()
+        items = Clothes.objects.filter(seller=user, is_sold=False)
+        serializer = ClothesSerializer(items, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'])
+    def sold_items(self, request, pk=None):
+        user = self.get_object()
+        items = Clothes.objects.filter(seller=user, is_sold=True)
+        serializer = ClothesSerializer(items, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'])
+    def ratings(self, request, pk=None):
+        user = self.get_object()
+        ratings = SellerRating.objects.filter(seller=user)
+        serializer = SellerRatingSerializer(ratings, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'])
+    def average_rating(self, request, pk=None):
+        user = self.get_object()
+        ratings = SellerRating.objects.filter(seller=user)
+        if not ratings.exists():
+            return Response({'average_rating': 0, 'total_ratings': 0})
+        
+        avg_rating = ratings.aggregate(models.Avg('rating'))['rating__avg']
+        return Response({
+            'average_rating': round(avg_rating, 2),
+            'total_ratings': ratings.count()
+        })
+    
+    @action(detail=True, methods=['post'])
+    def update_profile(self, request, pk=None):
+        user = self.get_object()
+        
+        # Only allow users to update their own profile
+        if request.user != user:
+            return Response(
+                {'error': 'You can only update your own profile'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Check if required fields are provided
+        required_fields = ['first_name', 'last_name', 'email']
+        missing_fields = [field for field in required_fields if field not in request.data]
+        
+        if missing_fields:
+            return Response({
+                'error': 'Missing required fields',
+                'missing_fields': missing_fields
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        serializer = UserSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            
+            # Get updated profile data with completion status
+            updated_data = serializer.data
+            is_complete = all([
+                user.first_name,
+                user.last_name,
+                user.email,
+                user.profile.profile_image
+            ])
+            updated_data['is_profile_complete'] = is_complete
+            
+            return Response(updated_data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    
